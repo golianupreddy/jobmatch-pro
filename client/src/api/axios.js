@@ -1,11 +1,12 @@
 ﻿import axios from 'axios';
 
-const API_URL =
-  import.meta.env.VITE_API_URL ??
-  (import.meta.env.PROD ? "https://jobmatch-pro-axgx.onrender.com" : "");
+// Permanent fix: Hardcode production URL if in production mode, avoiding Vercel env bugs completely
+const baseURL = import.meta.env.PROD 
+  ? 'https://jobmatch-pro-axgx.onrender.com/api' 
+  : '/api';
 
 const api = axios.create({
-  baseURL: ${API_URL}/api,
+  baseURL: baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
