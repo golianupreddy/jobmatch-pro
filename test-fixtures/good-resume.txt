@@ -1,0 +1,16 @@
+﻿Goli Anup Reddy
+Hyderabad, Telangana
+
+SKILLS:
+- JavaScript, React, Node.js, Express, MongoDB
+- HTML5, CSS3, Tailwind CSS, Git
+- REST APIs, Data Analysis, Python
+
+EXPERIENCE:
+Full Stack Developer (Fresher / Projects)
+- Built JobMatch Pro full stack web application utilizing React, Vite, Tailwind, Node.js, Express, and MongoDB.
+- Integrated Google Gemini AI API with Zod validation for automated resume parsing and matching analysis.
+- Implemented secure JWT authentication and rate limiting.
+
+EDUCATION:
+B.Tech in Computer Science and Engineering, Gokaraju Rangaraju Institute of Engineering and Technology (2026).
