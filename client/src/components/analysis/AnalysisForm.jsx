@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createAnalysis } from '../../api/analysis.api';
 import { getErrorMessage } from '../../api/axios';
@@ -12,13 +12,19 @@ function validate({ resume, jobDescription }) {
   if (!resume) {
     errors.resume = 'Please choose a resume file';
   } else {
-    const ext = resume.name.toLowerCase().match(/\\.[a-z0-9]+$/)?.[0];
-    if (ext !== '.pdf' && ext !== '.txt') errors.resume = 'Only PDF or TXT files are allowed';
-    else if (resume.size > MAX_FILE_SIZE) errors.resume = 'File must be 5 MB or smaller';
+    const ext = resume.name.toLowerCase().match(/\.[a-z0-9]+$/)?.[0];
+    if (ext !== '.pdf' && ext !== '.txt') {
+      errors.resume = 'Only PDF or TXT files are allowed';
+    } else if (resume.size > MAX_FILE_SIZE) {
+      errors.resume = 'File must be 5 MB or smaller';
+    }
   }
   const length = jobDescription.trim().length;
-  if (length < JD_MIN) errors.jobDescription = `Job description must be at least ${JD_MIN} characters`;
-  else if (length > JD_MAX) errors.jobDescription = `Job description must be at most ${JD_MAX} characters`;
+  if (length < JD_MIN) {
+    errors.jobDescription = 'Job description must be at least 50 characters';
+  } else if (length > JD_MAX) {
+    errors.jobDescription = 'Job description must be at most 8000 characters';
+  }
   return errors;
 }
 
@@ -72,7 +78,7 @@ export default function AnalysisForm({ onResult }) {
           <span>{jobDescription.length} / {JD_MAX}</span>
         </div>
       </div>
-      {mutation.isError && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{getErrorMessage(mutation.error)}</div>}
+      {mutation.isError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{getErrorMessage(mutation.error)}</p>}
       <button type="submit" disabled={mutation.isPending} className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">
         {mutation.isPending ? 'Analyzing... this can take up to 30 seconds' : 'Analyze match'}
       </button>

@@ -1,66 +1,95 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAnalyses, useDeleteAnalysis } from '../hooks/useAnalyses';
+﻿import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "../api/axios";
 
 export default function Dashboard() {
   const [page, setPage] = useState(1);
-  const { data, isLoading, isError } = useAnalyses(page);
-  const deleteMutation = useDeleteAnalysis();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  if (isLoading) return <div className="py-12 text-center text-gray-500" aria-live="polite">Loading your analyses...</div>;
-  if (isError) return <div className="py-12 text-center text-red-600">Failed to load analyses. Please try again.</div>;
+  const { data: analyses = [], isLoading, refetch } = useQuery({
+    queryKey: ["analyses", page],
+    queryFn: async () => {
+      try {
+        const res = await api.get("/analysis");
+        const raw = res.data?.analyses || res.data?.items || res.data || [];
+        return Array.isArray(raw) ? raw : [];
+      } catch (err) {
+        try {
+          const res2 = await api.get("/analysis");
+          const raw2 = res2.data?.analyses || res2.data?.items || res2.data || [];
+          return Array.isArray(raw2) ? raw2 : [];
+        } catch (err2) {
+          return [];
+        }
+      }
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      try {
+        await api.delete(`/analysis/`);
+      } catch (err) {
+        await api.delete(`/analysis/${id}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["analyses"]);
+      refetch();
+    },
+  });
+
+  if (isLoading) return <p className="p-6 text-gray-500">Loading your analyses...</p>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500">View your past resume analyses and match scores</p>
-        </div>
-        <Link to="/analyze" className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
-          New Analysis
-        </Link>
+    <div className="space-y-4 p-6 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Your Analyses</h1>
       </div>
 
-      {data?.items?.length === 0 ? (
-        <div className="rounded-xl bg-white p-12 text-center shadow border border-gray-100">
-          <p className="text-gray-500 mb-4">No resume analyses found yet.</p>
-          <Link to="/analyze" className="text-indigo-600 font-medium hover:underline">Run your first analysis</Link>
+      {analyses.length === 0 ? (
+        <div className="p-8 text-center bg-white rounded-xl shadow-sm border border-gray-100">
+          <p className="mb-4 text-gray-600">No analyses found yet.</p>
+          <button
+            type="button"
+            onClick={() => navigate("/analysis/new")}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 shadow font-semibold cursor-pointer"
+          >
+            Create your first analysis
+          </button>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {data.items.map((item) => (
-            <div key={item._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl bg-white p-5 shadow-sm border border-gray-100">
-              <div>
-                <Link to={`/analysis/${item._id}`} className="text-lg font-semibold text-indigo-600 hover:underline">
-                  {item.jobTitle}
+        <div className="space-y-3">
+          {analyses.map((item) => {
+            const id = item._id || item.id;
+            const jobTitle = item.jobTitle || "Full Stack Developer";
+            const matchScore = item.matchScore ?? item.result?.matchScore ?? "N/A";
+            const createdAt = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "Recent";
+
+            return (
+              <div key={id} className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <Link to={`/analysis/${id}`} className="flex-1 pr-4 block cursor-pointer">
+                  <p className="font-semibold text-gray-900 hover:text-indigo-600 transition-colors">{jobTitle}</p>
+                  <p className="text-xs text-gray-500 mt-1">Analyzed on {createdAt}</p>
                 </Link>
-                <p className="text-xs text-gray-500 mt-1">
-                  File: {item.resumeFileName} &bull; {new Date(item.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="rounded-full bg-indigo-50 px-3.5 py-1 text-sm font-bold text-indigo-700">
-                  {item.result?.matchScore}% Match
-                </span>
-                <button onClick={() => deleteMutation.mutate(item._id)} className="text-sm font-medium text-red-600 hover:text-red-800">
+                <span className="mx-4 font-bold text-indigo-600 text-sm">Match Score: {matchScore}%</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to delete this analysis?")) {
+                      deleteMutation.mutate(id);
+                    }
+                  }}
+                  disabled={deleteMutation.isPending && deleteMutation.variables === id}
+                  className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50 cursor-pointer"
+                >
                   Delete
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {data?.pages > 1 && (
-        <div className="flex justify-center gap-2 pt-4">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50">
-            Previous
-          </button>
-          <span className="px-3 py-1.5 text-sm text-gray-700">Page {page} of {data.pages}</span>
-          <button onClick={() => setPage((p) => Math.min(data.pages, p + 1))} disabled={page === data.pages} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50">
-            Next
-          </button>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,15 +1,30 @@
-﻿import axios from 'axios';
+﻿import axios from "axios";
 
-// Permanent fix: Hardcode production URL if in production mode, avoiding Vercel env bugs completely
-const baseURL = import.meta.env.PROD 
-  ? 'https://jobmatch-pro-axgx.onrender.com/api' 
-  : '/api';
+export const TOKEN_KEY = "jobmatch_token";
 
-const api = axios.create({
-  baseURL: baseURL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+const api = axios.create({ baseURL: "http://localhost:5000/api" });
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
+
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    const url = error.config?.url ?? "";
+    const isAuthAttempt = url.startsWith("/auth/login") || url.startsWith("/auth/signup");
+
+    if (error.response?.status === 401 && !isAuthAttempt) {
+      localStorage.removeItem(TOKEN_KEY);
+      window.dispatchEvent(new Event("auth:logout"));
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const getErrorMessage = (error) =>
+  error.response?.data?.message || error.message || "Something went wrong";
 
 export default api;
